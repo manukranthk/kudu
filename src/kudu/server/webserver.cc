@@ -63,7 +63,7 @@ namespace kudu {
 Webserver::Webserver(const WebserverOptions& opts)
   : opts_(opts),
     context_(nullptr) {
-  string host = opts.bind_interface.empty() ? "0.0.0.0" : opts.bind_interface;
+  string host = opts.bind_interface.empty() ? "::" : opts.bind_interface;
   http_address_ = host + ":" + boost::lexical_cast<string>(opts.port);
 }
 
@@ -111,7 +111,7 @@ Status Webserver::BuildListenSpec(string* spec) const {
   vector<string> parts;
   for (const Sockaddr& addr : addrs) {
     // Mongoose makes sockets with 's' suffixes accept SSL traffic only
-    parts.push_back(addr.ToString() + (IsSecure() ? "s" : ""));
+    parts.push_back(addr.ToStringCanonical() + (IsSecure() ? "s" : ""));
   }
 
   JoinStrings(parts, ",", spec);
@@ -119,7 +119,6 @@ Status Webserver::BuildListenSpec(string* spec) const {
 }
 
 Status Webserver::Start() {
-  LOG(INFO) << "Starting webserver on " << http_address_;
 
   vector<const char*> options;
 

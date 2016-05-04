@@ -36,6 +36,7 @@ class Sockaddr {
  public:
   Sockaddr();
   explicit Sockaddr(const struct sockaddr_in &addr);
+  explicit Sockaddr(const struct sockaddr_in6 &addr);
 
   // Parse a string IP address of the form "A.B.C.D:port", storing the result
   // in this Sockaddr object. If no ':port' is specified, uses 'default_port'.
@@ -45,6 +46,7 @@ class Sockaddr {
   Status ParseString(const std::string& s, uint16_t default_port);
 
   Sockaddr& operator=(const struct sockaddr_in &addr);
+  Sockaddr& operator=(const struct sockaddr_in6 &addr);
 
   bool operator==(const Sockaddr& other) const;
 
@@ -59,7 +61,9 @@ class Sockaddr {
   void set_port(int port);
   int port() const;
   const struct sockaddr_in& addr() const;
+  const struct sockaddr_in6& addr6() const;
   std::string ToString() const;
+  std::string ToStringCanonical() const;
 
   // Returns true if the address is 0.0.0.0
   bool IsWildcard() const;
@@ -72,7 +76,9 @@ class Sockaddr {
 
   // the default auto-generated copy constructor is fine here
  private:
+  bool usingIpv6 = true;
   struct sockaddr_in addr_;
+  struct sockaddr_in6 addr6_;
 };
 
 } // namespace kudu

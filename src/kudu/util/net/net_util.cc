@@ -74,22 +74,20 @@ HostPort::HostPort(const Sockaddr& addr)
 }
 
 Status HostPort::ParseString(const string& str, uint16_t default_port) {
-  std::pair<string, string> p = strings::Split(str, strings::delimiter::Limit(":", 1));
+  std::vector<string> p = strings::Split(str, ":");
 
-  // Strip any whitespace from the host.
-  StripWhiteSpace(&p.first);
-
+  int sz = p.size();
+  if (sz < 1) return Status::InvalidArgument("Invalid port", str);
   // Parse the port.
   uint32_t port;
-  if (p.second.empty() && strcount(str, ':') == 0) {
-    // No port specified.
-    port = default_port;
-  } else if (!SimpleAtoi(p.second, &port) ||
+  if (!SimpleAtoi(p[sz-1], &port) ||
              port > 65535) {
     return Status::InvalidArgument("Invalid port", str);
   }
+  p.pop_back();
 
-  host_.swap(p.first);
+  // Strip any whitespace from the host.
+  JoinStrings(p, ":", &host_);
   port_ = port;
   return Status::OK();
 }
@@ -99,7 +97,7 @@ Status HostPort::ResolveAddresses(vector<Sockaddr>* addresses) const {
                "host", host_);
   struct addrinfo hints;
   memset(&hints, 0, sizeof(hints));
-  hints.ai_family = AF_INET;
+  hints.ai_family = AF_INET6;
   hints.ai_socktype = SOCK_STREAM;
   struct addrinfo* res = nullptr;
   int rc;
@@ -114,10 +112,10 @@ Status HostPort::ResolveAddresses(vector<Sockaddr>* addresses) const {
   }
   gscoped_ptr<addrinfo, AddrinfoDeleter> scoped_res(res);
   for (; res != nullptr; res = res->ai_next) {
-    CHECK_EQ(res->ai_family, AF_INET);
-    struct sockaddr_in* addr = reinterpret_cast<struct sockaddr_in*>(res->ai_addr);
-    addr->sin_port = htons(port_);
-    Sockaddr sockaddr(*addr);
+    CHECK_EQ(res->ai_family, AF_INET6);
+    struct sockaddr_in6* addr6 = reinterpret_cast<struct sockaddr_in6*>(res->ai_addr);
+    addr6->sin6_port = htons(port_);
+    Sockaddr sockaddr(*addr6);
     if (addresses) {
       addresses->push_back(sockaddr);
     }
@@ -172,8 +170,9 @@ Status ParseAddressList(const std::string& addr_list,
       if (InsertIfNotPresent(&uniqued, addr)) {
         addresses->push_back(addr);
       } else {
-        LOG(INFO) << "Address " << addr.ToString() << " for " << host_port.ToString()
-                  << " duplicates an earlier resolved entry.";
+        LOG(INFO) << "Address " << addr.ToString() << " for "
+          << host_port.ToString()
+          << " duplicates an earlier resolved entry.";
       }
     }
   }

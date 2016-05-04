@@ -124,7 +124,7 @@ bool Socket::IsTemporarySocketError(int err) {
 
 Status Socket::Init(int flags) {
   int nonblocking_flag = (flags & FLAG_NONBLOCKING) ? SOCK_NONBLOCK : 0;
-  Reset(::socket(AF_INET, SOCK_STREAM | SOCK_CLOEXEC | nonblocking_flag, 0));
+  Reset(::socket(AF_INET6, SOCK_STREAM | SOCK_CLOEXEC | nonblocking_flag, 0));
   if (fd_ < 0) {
     int err = errno;
     return Status::NetworkError(std::string("error opening socket: ") +
@@ -137,7 +137,7 @@ Status Socket::Init(int flags) {
 #else
 
 Status Socket::Init(int flags) {
-  Reset(::socket(AF_INET, SOCK_STREAM, 0));
+  Reset(::socket(AF_INET6, SOCK_STREAM, 0));
   if (fd_ < 0) {
     int err = errno;
     return Status::NetworkError(std::string("error opening socket: ") +
@@ -258,36 +258,37 @@ Status Socket::Listen(int listen_queue_size) {
 }
 
 Status Socket::GetSocketAddress(Sockaddr *cur_addr) const {
-  struct sockaddr_in sin;
-  socklen_t len = sizeof(sin);
+  struct sockaddr_in6 sin6;
+  sin6.sin6_family = AF_INET6;
+  socklen_t len = sizeof(sin6);
   DCHECK_GE(fd_, 0);
-  if (::getsockname(fd_, (struct sockaddr *)&sin, &len) == -1) {
+  if (::getsockname(fd_, (struct sockaddr *)&sin6, &len) == -1) {
     int err = errno;
     return Status::NetworkError(string("getsockname error: ") +
                                 ErrnoToString(err), Slice(), err);
   }
-  *cur_addr = sin;
+  *cur_addr = sin6;
   return Status::OK();
 }
 
 Status Socket::GetPeerAddress(Sockaddr *cur_addr) const {
-  struct sockaddr_in sin;
-  socklen_t len = sizeof(sin);
+  struct sockaddr_in6 sin6;
+  socklen_t len = sizeof(sin6);
   DCHECK_GE(fd_, 0);
-  if (::getpeername(fd_, (struct sockaddr *)&sin, &len) == -1) {
+  if (::getpeername(fd_, (struct sockaddr *)&sin6, &len) == -1) {
     int err = errno;
     return Status::NetworkError(string("getpeername error: ") +
                                 ErrnoToString(err), Slice(), err);
   }
-  *cur_addr = sin;
+  *cur_addr = sin6;
   return Status::OK();
 }
 
 Status Socket::Bind(const Sockaddr& bind_addr) {
-  struct sockaddr_in addr = bind_addr.addr();
+  struct sockaddr_in6 addr6 = bind_addr.addr6();
 
   DCHECK_GE(fd_, 0);
-  if (PREDICT_FALSE(::bind(fd_, (struct sockaddr*) &addr, sizeof(addr)))) {
+  if (PREDICT_FALSE(::bind(fd_, (struct sockaddr*) &addr6, sizeof(addr6)))) {
     int err = errno;
     Status s = Status::NetworkError(
         strings::Substitute("error binding socket to $0: $1",
@@ -305,15 +306,16 @@ Status Socket::Bind(const Sockaddr& bind_addr) {
 
 Status Socket::Accept(Socket *new_conn, Sockaddr *remote, int flags) {
   TRACE_EVENT0("net", "Socket::Accept");
-  struct sockaddr_in addr;
-  socklen_t olen = sizeof(addr);
+  struct sockaddr_in6 addr6;
+  addr6.sin6_family = AF_INET6;
+  socklen_t olen = sizeof(addr6);
   DCHECK_GE(fd_, 0);
 #if defined(__linux__)
   int accept_flags = SOCK_CLOEXEC;
   if (flags & FLAG_NONBLOCKING) {
     accept_flags |= SOCK_NONBLOCK;
   }
-  new_conn->Reset(::accept4(fd_, (struct sockaddr*)&addr,
+  new_conn->Reset(::accept4(fd_, (struct sockaddr*)&addr6,
                   &olen, accept_flags));
   if (new_conn->GetFd() < 0) {
     int err = errno;
@@ -321,7 +323,7 @@ Status Socket::Accept(Socket *new_conn, Sockaddr *remote, int flags) {
                                 ErrnoToString(err), Slice(), err);
   }
 #else
-  new_conn->Reset(::accept(fd_, (struct sockaddr*)&addr, &olen));
+  new_conn->Reset(::accept(fd_, (struct sockaddr*)&addr6, &olen));
   if (new_conn->GetFd() < 0) {
     int err = errno;
     return Status::NetworkError(std::string("accept(2) error: ") +
@@ -331,7 +333,7 @@ Status Socket::Accept(Socket *new_conn, Sockaddr *remote, int flags) {
   RETURN_NOT_OK(new_conn->SetCloseOnExec());
 #endif // defined(__linux__)
 
-  *remote = addr;
+  *remote = addr6;
   TRACE_EVENT_INSTANT1("net", "Accepted", TRACE_EVENT_SCOPE_THREAD,
                        "remote", remote->ToString());
   return Status::OK();
@@ -355,10 +357,11 @@ Status Socket::Connect(const Sockaddr &remote) {
     RETURN_NOT_OK(BindForOutgoingConnection());
   }
 
-  struct sockaddr_in addr;
-  memcpy(&addr, &remote.addr(), sizeof(sockaddr_in));
+  struct sockaddr_in6 addr6;
+  addr6.sin6_family = AF_INET6;
+  memcpy(&addr6, &remote.addr6(), sizeof(sockaddr_in6));
   DCHECK_GE(fd_, 0);
-  if (::connect(fd_, (const struct sockaddr*)&addr, sizeof(addr)) < 0) {
+  if (::connect(fd_, (const struct sockaddr*)&addr6, sizeof(addr6)) < 0) {
     int err = errno;
     return Status::NetworkError(std::string("connect(2) error: ") +
                                 ErrnoToString(err), Slice(), err);
