@@ -14,6 +14,7 @@
 // KIND, either express or implied.  See the License for the
 // specific language governing permissions and limitations
 // under the License.
+#define USE_IPV6
 
 #include "kudu/rpc/rpc-test-base.h"
 
@@ -50,15 +51,21 @@ TEST_F(TestRpc, TestSockaddr) {
   Sockaddr addr1, addr2;
   addr1.set_port(1000);
   addr2.set_port(2000);
+  Sockaddr addr3(addr1);
   // port is ignored when comparing Sockaddr objects
   ASSERT_FALSE(addr1 < addr2);
   ASSERT_FALSE(addr2 < addr1);
   ASSERT_EQ(1000, addr1.port());
   ASSERT_EQ(2000, addr2.port());
-  ASSERT_EQ(string("0.0.0.0:1000"), addr1.ToString());
-  ASSERT_EQ(string("0.0.0.0:2000"), addr2.ToString());
-  Sockaddr addr3(addr1);
-  ASSERT_EQ(string("0.0.0.0:1000"), addr3.ToString());
+#ifdef USE_IPV6
+  ASSERT_EQ(string(":::1000"), addr1.ToString());
+  ASSERT_EQ(string(":::2000"), addr2.ToString());
+  ASSERT_EQ(string(":::1000"), addr3.ToString());
+#else
+  ASSERT_EQ(string("0.0.0.0::1000"), addr1.ToString());
+  ASSERT_EQ(string("0.0.0.0::2000"), addr2.ToString());
+  ASSERT_EQ(string("0.0.0.0::1000"), addr3.ToString());
+#endif
 }
 
 TEST_F(TestRpc, TestMessengerCreateDestroy) {

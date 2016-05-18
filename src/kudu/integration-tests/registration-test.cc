@@ -73,9 +73,15 @@ class RegistrationTest : public KuduTest {
   void CheckTabletServersPage() {
     EasyCurl c;
     faststring buf;
+#ifdef USE_IPV6
+    int addr = cluster_->mini_master()->bound_http_addr().port();
+    ASSERT_OK(c.FetchURL(strings::Substitute("http://localhost:$0/tablet-servers", addr),
+                                &buf));
+#else
     string addr = cluster_->mini_master()->bound_http_addr().ToString();
     ASSERT_OK(c.FetchURL(strings::Substitute("http://$0/tablet-servers", addr),
                                 &buf));
+#endif
 
     // Should include the TS UUID
     string expected_uuid =
@@ -99,8 +105,14 @@ TEST_F(RegistrationTest, TestTSRegisters) {
   descs[0]->GetRegistration(&reg);
   {
     SCOPED_TRACE(reg.ShortDebugString());
+
+#ifdef USE_IPV6
+    ASSERT_NE(reg.ShortDebugString().compare("::"), 0)
+#else
     ASSERT_EQ(reg.ShortDebugString().find("0.0.0.0"), string::npos)
+#endif
       << "Should not include wildcards in registration";
+
   }
 
   ASSERT_NO_FATAL_FAILURE(CheckTabletServersPage());

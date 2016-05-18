@@ -51,29 +51,26 @@ class NetUtilTest : public KuduTest {
 
 TEST(SockaddrTest, Test) {
   Sockaddr addr;
-  ASSERT_OK(addr.ParseString("1.1.1.1:12345", 12345));
+  ASSERT_OK(addr.ParseString("::1:12345", 12345));
   ASSERT_EQ(12345, addr.port());
 }
 
 TEST_F(NetUtilTest, TestParseAddresses) {
   string ret;
-  ASSERT_OK(DoParseBindAddresses("0.0.0.0:12345", &ret));
-  ASSERT_EQ("0.0.0.0:12345", ret);
+  ASSERT_OK(DoParseBindAddresses(":::12345", &ret));
+  ASSERT_EQ(":::12345", ret);
 
-  ASSERT_OK(DoParseBindAddresses("0.0.0.0", &ret));
-  ASSERT_EQ("0.0.0.0:7150", ret);
-
-  ASSERT_OK(DoParseBindAddresses("0.0.0.0:12345, 0.0.0.0:12346", &ret));
-  ASSERT_EQ("0.0.0.0:12345,0.0.0.0:12346", ret);
+  ASSERT_OK(DoParseBindAddresses(":::12345,:::12346", &ret));
+  ASSERT_EQ(":::12345,:::12346", ret);
 
   // Test some invalid addresses.
-  Status s = DoParseBindAddresses("0.0.0.0:xyz", &ret);
+  Status s = DoParseBindAddresses(":::xyz", &ret);
   ASSERT_STR_CONTAINS(s.ToString(), "Invalid port");
 
-  s = DoParseBindAddresses("0.0.0.0:100000", &ret);
+  s = DoParseBindAddresses(":::100000", &ret);
   ASSERT_STR_CONTAINS(s.ToString(), "Invalid port");
 
-  s = DoParseBindAddresses("0.0.0.0:", &ret);
+  s = DoParseBindAddresses(":::", &ret);
   ASSERT_STR_CONTAINS(s.ToString(), "Invalid port");
 }
 
@@ -84,7 +81,7 @@ TEST_F(NetUtilTest, TestResolveAddresses) {
   ASSERT_TRUE(!addrs.empty());
   for (const Sockaddr& addr : addrs) {
     LOG(INFO) << "Address: " << addr.ToString();
-    EXPECT_TRUE(HasPrefixString(addr.ToString(), "127."));
+    EXPECT_TRUE(HasPrefixString(addr.ToString(), "::"));
     EXPECT_TRUE(HasSuffixString(addr.ToString(), ":12345"));
     EXPECT_TRUE(addr.IsAnyLocalAddress());
   }
@@ -98,16 +95,16 @@ TEST_F(NetUtilTest, TestReverseLookup) {
   string host;
   Sockaddr addr;
   HostPort hp;
-  ASSERT_OK(addr.ParseString("0.0.0.0:12345", 0));
+  ASSERT_OK(addr.ParseString(":::12345", 0));
   EXPECT_EQ(12345, addr.port());
   ASSERT_OK(HostPortFromSockaddrReplaceWildcard(addr, &hp));
-  EXPECT_NE("0.0.0.0", hp.host());
+  EXPECT_NE("::", hp.host());
   EXPECT_NE("", hp.host());
   EXPECT_EQ(12345, hp.port());
 
-  ASSERT_OK(addr.ParseString("127.0.0.1:12345", 0));
+  ASSERT_OK(addr.ParseString("::1:12345", 0));
   ASSERT_OK(HostPortFromSockaddrReplaceWildcard(addr, &hp));
-  EXPECT_EQ("127.0.0.1", hp.host());
+  EXPECT_EQ("::1", hp.host());
   EXPECT_EQ(12345, hp.port());
 }
 

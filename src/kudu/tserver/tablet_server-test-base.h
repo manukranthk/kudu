@@ -108,7 +108,7 @@ class TabletServerTestBase : public KuduTest {
     // heartbeats, even if there happens to be a master running on this machine.
     mini_server_.reset(new MiniTabletServer(GetTestPath("TabletServerTest-fsroot"), 0));
     mini_server_->options()->master_addresses.clear();
-    mini_server_->options()->master_addresses.push_back(HostPort("255.255.255.255", 1));
+    mini_server_->options()->master_addresses.push_back(HostPort("::1", 1));
     CHECK_OK(mini_server_->Start());
 
     // Set up a tablet inside the server.

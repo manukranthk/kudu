@@ -27,7 +27,7 @@
 namespace kudu {
 namespace tserver {
 
-DEFINE_string(tserver_master_addrs, "127.0.0.1:7051",
+DEFINE_string(tserver_master_addrs, "[::1]:7051",
               "Comma separated addresses of the masters which the "
               "tablet server should connect to. The masters do not "
               "read this flag -- configure the masters separately "

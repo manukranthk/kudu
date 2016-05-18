@@ -17,6 +17,8 @@
 #ifndef KUDU_INTEGRATION_TESTS_EXTERNAL_MINI_CLUSTER_H
 #define KUDU_INTEGRATION_TESTS_EXTERNAL_MINI_CLUSTER_H
 
+#define USE_IPV6
+
 #include <memory>
 #include <string>
 #include <sys/types.h>

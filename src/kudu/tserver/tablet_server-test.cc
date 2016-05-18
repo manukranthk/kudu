@@ -161,13 +161,14 @@ TEST_F(TabletServerTest, TestWebPages) {
   string addr = mini_server_->bound_http_addr().ToString();
 
   // Tablets page should list tablet.
-  ASSERT_OK(c.FetchURL(Substitute("http://$0/tablets", addr),
+  ASSERT_OK(c.FetchURL(Substitute("http://localhost:$0/tablets",
+                      mini_server_->bound_http_addr().port()),
                               &buf));
   ASSERT_STR_CONTAINS(buf.ToString(), kTabletId);
   ASSERT_STR_CONTAINS(buf.ToString(), "<td>range: [(&lt;start&gt;), (&lt;end&gt;))</td>");
 
   // Tablet page should include the schema.
-  ASSERT_OK(c.FetchURL(Substitute("http://$0/tablet?id=$1", addr, kTabletId),
+  ASSERT_OK(c.FetchURL(Substitute("http://localhost:$0/tablet?id=$1", mini_server_->bound_http_addr().port(), kTabletId),
                        &buf));
   ASSERT_STR_CONTAINS(buf.ToString(), "<th>key</th>");
   ASSERT_STR_CONTAINS(buf.ToString(), "<td>string NULLABLE</td>");
@@ -181,7 +182,7 @@ TEST_F(TabletServerTest, TestWebPages) {
   FLAGS_metrics_retirement_age_ms = 0;
   for (int i = 0; i < 3; i++) {
     SCOPED_TRACE(i);
-    ASSERT_OK(c.FetchURL(strings::Substitute("http://$0/jsonmetricz", addr, kTabletId),
+    ASSERT_OK(c.FetchURL(strings::Substitute("http://localhost:$0/jsonmetricz", mini_server_->bound_http_addr().port(), kTabletId),
                                 &buf));
 
     // Check that the tablet entry shows up.
@@ -207,7 +208,7 @@ TEST_F(TabletServerTest, TestWebPages) {
 
   // Smoke-test the tracing infrastructure.
   ASSERT_OK(c.FetchURL(
-                Substitute("http://$0/tracing/json/get_buffer_percent_full", addr, kTabletId),
+                Substitute("http://localhost:$0/tracing/json/get_buffer_percent_full", mini_server_->bound_http_addr().port(), kTabletId),
                 &buf));
   ASSERT_EQ(buf.ToString(), "0");
 
@@ -216,19 +217,19 @@ TEST_F(TabletServerTest, TestWebPages) {
   string req_b64;
   Base64Escape(enable_req_json, &req_b64);
 
-  ASSERT_OK(c.FetchURL(Substitute("http://$0/tracing/json/begin_recording?$1",
-                                         addr,
+  ASSERT_OK(c.FetchURL(Substitute("http://localhost:$0/tracing/json/begin_recording?$1",
+                                         mini_server_->bound_http_addr().port(),
                                          req_b64), &buf));
   ASSERT_EQ(buf.ToString(), "");
-  ASSERT_OK(c.FetchURL(Substitute("http://$0/tracing/json/end_recording", addr),
+  ASSERT_OK(c.FetchURL(Substitute("http://localhost:$0/tracing/json/end_recording", mini_server_->bound_http_addr().port()),
                        &buf));
   ASSERT_STR_CONTAINS(buf.ToString(), "__metadata");
-  ASSERT_OK(c.FetchURL(Substitute("http://$0/tracing/json/categories", addr),
+  ASSERT_OK(c.FetchURL(Substitute("http://localhost:$0/tracing/json/categories", mini_server_->bound_http_addr().port()),
                        &buf));
   ASSERT_STR_CONTAINS(buf.ToString(), "\"rpc\"");
 
   // Smoke test the pprof contention profiler handler.
-  ASSERT_OK(c.FetchURL(Substitute("http://$0/pprof/contention?seconds=1", addr),
+  ASSERT_OK(c.FetchURL(Substitute("http://localhost:$0/pprof/contention?seconds=1", mini_server_->bound_http_addr().port()),
                        &buf));
   ASSERT_STR_CONTAINS(buf.ToString(), "discarded samples = 0");
 #if defined(__linux__)
@@ -1925,8 +1926,8 @@ TEST_F(TabletServerTest, TestDeleteTablet) {
   EasyCurl c;
   faststring buf;
   ASSERT_OK(c.FetchURL(strings::Substitute(
-                                "http://$0/jsonmetricz",
-                                mini_server_->bound_http_addr().ToString()),
+                                "http://localhost:$0/jsonmetricz",
+                                mini_server_->bound_http_addr().port()),
                               &buf));
 
   // Verify data was actually removed.

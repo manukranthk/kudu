@@ -288,8 +288,13 @@ TEST_F(DeleteTableTest, TestDeleteEmptyTable) {
   // 4) The master 'dump-entities' page should not list the deleted table or tablets.
   EasyCurl c;
   faststring entities_buf;
+#if defined(USE_IPV6)
+  ASSERT_OK(c.FetchURL(Substitute("http://localhost:$0/dump-entities",
+            cluster_->master()->bound_http_hostport().port()),
+#else
   ASSERT_OK(c.FetchURL(Substitute("http://$0/dump-entities",
-                                  cluster_->master()->bound_http_hostport().ToString()),
+            cluster_->master()->bound_http_hostport().ToString()),
+#endif
                        &entities_buf));
   ASSERT_EQ("{\"tables\":[],\"tablets\":[]}", entities_buf.ToString());
 }

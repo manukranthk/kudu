@@ -42,7 +42,7 @@ using std::string;
 using std::vector;
 using strings::Substitute;
 
-DEFINE_string(rpc_bind_addresses, "0.0.0.0",
+DEFINE_string(rpc_bind_addresses, "::",
               "Comma-separated list of addresses to bind to for RPC connections. "
               "Currently, ephemeral ports (i.e. port 0) are not allowed.");
 TAG_FLAG(rpc_bind_addresses, stable);

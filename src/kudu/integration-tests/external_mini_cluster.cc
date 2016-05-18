@@ -228,7 +228,11 @@ Status ExternalMiniCluster::StartDistributedMasters() {
 
   vector<string> peer_addrs;
   for (int i = 0; i < num_masters; i++) {
+#if defined(USE_IPV6)
+    string addr = Substitute("[::1]:$0", opts_.master_rpc_ports[i]);
+#else
     string addr = Substitute("127.0.0.1:$0", opts_.master_rpc_ports[i]);
+#endif
     peer_addrs.push_back(addr);
   }
   string peer_addrs_str = JoinStrings(peer_addrs, ",");
@@ -256,11 +260,18 @@ Status ExternalMiniCluster::StartDistributedMasters() {
 string ExternalMiniCluster::GetBindIpForTabletServer(int index) const {
   if (opts_.bind_to_unique_loopback_addresses) {
     pid_t p = getpid();
+#if defined(USE_IPV6)
+    return "::1";
+  } else {
+    return "::1";
+  }
+#else
     CHECK_LE(p, MathLimits<uint16_t>::kMax) << "Cannot run on systems with >16-bit pid";
     return Substitute("127.$0.$1.$2", p >> 8, p & 0xff, index);
   } else {
     return "127.0.0.1";
   }
+#endif
 }
 
 Status ExternalMiniCluster::AddTabletServer() {
@@ -716,9 +727,14 @@ Status ExternalDaemon::GetInt64Metric(const MetricEntityPrototype* entity_proto,
                                       const char* value_field,
                                       int64_t* value) const {
   // Fetch metrics whose name matches the given prototype.
+#if defined(USE_IPV6)
   string url = Substitute(
+      "http://localhost:$0/jsonmetricz?metrics=$1",
+      bound_http_hostport().port(),
+#else
       "http://$0/jsonmetricz?metrics=$1",
       bound_http_hostport().ToString(),
+#endif
       metric_proto->name());
   EasyCurl curl;
   faststring dst;
@@ -790,8 +806,12 @@ ExternalMaster::ExternalMaster(const std::shared_ptr<rpc::Messenger>& messenger,
                                const string& data_dir,
                                const vector<string>& extra_flags)
     : ExternalDaemon(messenger, exe, data_dir, extra_flags),
-      rpc_bind_address_("127.0.0.1:0") {
-}
+#if defined(USE_IPV6)
+      rpc_bind_address_("::1:0")
+#else
+      rpc_bind_address_("127.0.0.1:0")
+#endif
+{}
 
 ExternalMaster::ExternalMaster(const std::shared_ptr<rpc::Messenger>& messenger,
                                const string& exe, const string& data_dir,
@@ -808,7 +828,7 @@ Status ExternalMaster::Start() {
   flags.push_back("--fs_wal_dir=" + data_dir_);
   flags.push_back("--fs_data_dirs=" + data_dir_);
   flags.push_back("--rpc_bind_addresses=" + rpc_bind_address_);
-  flags.push_back("--webserver_interface=localhost");
+  // flags.push_back("--webserver_interface=::1");
   flags.push_back("--webserver_port=0");
   RETURN_NOT_OK(StartProcess(flags));
   return Status::OK();
@@ -823,7 +843,7 @@ Status ExternalMaster::Restart() {
   flags.push_back("--fs_wal_dir=" + data_dir_);
   flags.push_back("--fs_data_dirs=" + data_dir_);
   flags.push_back("--rpc_bind_addresses=" + bound_rpc_.ToString());
-  flags.push_back("--webserver_interface=localhost");
+  // flags.push_back("--webserver_interface=::1");
   flags.push_back(Substitute("--webserver_port=$0", bound_http_.port()));
   RETURN_NOT_OK(StartProcess(flags));
   return Status::OK();
@@ -851,10 +871,9 @@ Status ExternalTabletServer::Start() {
   flags.push_back("--fs_data_dirs=" + data_dir_);
   flags.push_back(Substitute("--rpc_bind_addresses=$0:0",
                              bind_host_));
-  flags.push_back(Substitute("--local_ip_for_outbound_sockets=$0",
+  flags.push_back(Substitute("--local_ip_for_outbound_sockets=$0:0",
                              bind_host_));
-  flags.push_back(Substitute("--webserver_interface=$0",
-                             bind_host_));
+  // flags.push_back(Substitute("--webserver_interface=$0", bind_host_));
   flags.push_back("--webserver_port=0");
   flags.push_back("--tserver_master_addrs=" + master_addrs_);
   RETURN_NOT_OK(StartProcess(flags));
@@ -870,11 +889,10 @@ Status ExternalTabletServer::Restart() {
   flags.push_back("--fs_wal_dir=" + data_dir_);
   flags.push_back("--fs_data_dirs=" + data_dir_);
   flags.push_back("--rpc_bind_addresses=" + bound_rpc_.ToString());
-  flags.push_back(Substitute("--local_ip_for_outbound_sockets=$0",
+  flags.push_back(Substitute("--local_ip_for_outbound_sockets=$0:0",
                              bind_host_));
   flags.push_back(Substitute("--webserver_port=$0", bound_http_.port()));
-  flags.push_back(Substitute("--webserver_interface=$0",
-                             bind_host_));
+  // flags.push_back(Substitute("--webserver_interface=$0", bind_host_));
   flags.push_back("--tserver_master_addrs=" + master_addrs_);
   RETURN_NOT_OK(StartProcess(flags));
   return Status::OK();

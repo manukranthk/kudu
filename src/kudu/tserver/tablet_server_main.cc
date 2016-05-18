@@ -37,7 +37,7 @@ static int TabletServerMain(int argc, char** argv) {
   InitKuduOrDie();
 
   // Reset some default values before parsing gflags.
-  FLAGS_rpc_bind_addresses = strings::Substitute("0.0.0.0:$0",
+  FLAGS_rpc_bind_addresses = strings::Substitute(":::$0",
                                                  TabletServer::kDefaultPort);
   FLAGS_rpc_num_service_threads = 20;
   FLAGS_webserver_port = TabletServer::kDefaultWebPort;

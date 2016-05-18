@@ -60,10 +60,14 @@ TEST_F(EMCTest, TestBasicOperation) {
     SCOPED_TRACE(i);
     ExternalMaster* master = CHECK_NOTNULL(cluster.master(i));
     HostPort master_rpc = master->bound_rpc_hostport();
+#if defined(USE_IPV6)
+    EXPECT_TRUE(HasPrefixString(master_rpc.ToString(), "::1:")) << master_rpc.ToString();
+#else
     EXPECT_TRUE(HasPrefixString(master_rpc.ToString(), "127.0.0.1:")) << master_rpc.ToString();
 
+#endif
     HostPort master_http = master->bound_http_hostport();
-    EXPECT_TRUE(HasPrefixString(master_http.ToString(), "127.0.0.1:")) << master_http.ToString();
+    EXPECT_TRUE(HasPrefixString(master_http.ToString(), "0.0.0.0:")) << master_http.ToString();
 
     // Retrieve a thread metric, which should always be present on any master.
     int64_t value;
@@ -85,7 +89,7 @@ TEST_F(EMCTest, TestBasicOperation) {
     EXPECT_TRUE(HasPrefixString(ts_rpc.ToString(), expected_prefix)) << ts_rpc.ToString();
 
     HostPort ts_http = ts->bound_http_hostport();
-    EXPECT_TRUE(HasPrefixString(ts_http.ToString(), expected_prefix)) << ts_http.ToString();
+    EXPECT_TRUE(HasPrefixString(ts_http.ToString(), "0.0.0.0:")) << ts_http.ToString();
 
     // Retrieve a thread metric, which should always be present on any TS.
     int64_t value;

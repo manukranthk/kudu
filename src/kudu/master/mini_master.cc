@@ -77,7 +77,7 @@ Status MiniMaster::StartOnPorts(uint16_t rpc_port, uint16_t web_port) {
 
 Status MiniMaster::StartOnPorts(uint16_t rpc_port, uint16_t web_port,
                                 MasterOptions* opts) {
-  opts->rpc_opts.rpc_bind_addresses = Substitute("127.0.0.1:$0", rpc_port);
+  opts->rpc_opts.rpc_bind_addresses = Substitute("[::1]:$0", rpc_port);
   opts->webserver_opts.port = web_port;
   opts->fs_opts.wal_path = fs_root_;
   opts->fs_opts.data_paths = { fs_root_ };
@@ -101,7 +101,7 @@ Status MiniMaster::StartDistributedMasterOnPorts(uint16_t rpc_port, uint16_t web
 
   vector<HostPort> peer_addresses;
   for (uint16_t peer_port : peer_ports) {
-    HostPort peer_address("127.0.0.1", peer_port);
+    HostPort peer_address("::1", peer_port);
     peer_addresses.push_back(peer_address);
   }
   opts.master_addresses = peer_addresses;

@@ -47,7 +47,7 @@ TEST_F(DnsResolverTest, TestResolution) {
   ASSERT_TRUE(!addrs.empty());
   for (const Sockaddr& addr : addrs) {
     LOG(INFO) << "Address: " << addr.ToString();
-    EXPECT_TRUE(HasPrefixString(addr.ToString(), "127."));
+    EXPECT_TRUE(HasPrefixString(addr.ToString(), "::1"));
     EXPECT_TRUE(HasSuffixString(addr.ToString(), ":12345"));
   }
 }

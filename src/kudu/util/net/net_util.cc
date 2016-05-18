@@ -74,21 +74,45 @@ HostPort::HostPort(const Sockaddr& addr)
 }
 
 Status HostPort::ParseString(const string& str, uint16_t default_port) {
-  std::vector<string> p = strings::Split(str, ":");
+  std::string portStr;
+  bool parsePort = true;
+  if (str.find('[') != std::string::npos && str.rfind(']') != std::string::npos) {
+    // Canonical hostport
+    // [::]:port
+    size_t startBrace = str.find('[');
+    size_t pos = str.rfind(']');
+    size_t len = str.length();
+    if (pos >= (len - 1)) {
+      port_ = default_port;
+      parsePort = false;
+    } else {
+      // pos + 2 in order to skip the ":"
+      portStr = str.substr(pos + 2, (len - (pos + 2)));
+    }
+    // Drop the brackets []
+    host_ = str.substr(startBrace + 1, pos - 1);
+  } else {
+    std::vector<string> p = strings::Split(str, ":");
+    int sz = p.size();
+    if (sz < 2) {
+      port_ = default_port;
+      parsePort = false;
+    }
+    portStr = p[sz-1];
+    p.pop_back();
 
-  int sz = p.size();
-  if (sz < 1) return Status::InvalidArgument("Invalid port", str);
-  // Parse the port.
-  uint32_t port;
-  if (!SimpleAtoi(p[sz-1], &port) ||
-             port > 65535) {
-    return Status::InvalidArgument("Invalid port", str);
+    // Strip any whitespace from the host.
+    JoinStrings(p, ":", &host_);
   }
-  p.pop_back();
-
-  // Strip any whitespace from the host.
-  JoinStrings(p, ":", &host_);
-  port_ = port;
+  // Parse the port.
+  if (parsePort) {
+    uint32_t port;
+    if (!SimpleAtoi(portStr, &port) ||
+        port > 65535) {
+      return Status::InvalidArgument("Invalid port", str);
+    }
+    port_ = port;
+  }
   return Status::OK();
 }
 

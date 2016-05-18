@@ -14,6 +14,7 @@
 // KIND, either express or implied.  See the License for the
 // specific language governing permissions and limitations
 // under the License.
+#define USE_IPV6
 
 #include <atomic>
 #include <thread>
@@ -178,7 +179,11 @@ TEST_F(RpcStubTest, TestRemoteAddress) {
   WhoAmIRequestPB req;
   WhoAmIResponsePB resp;
   ASSERT_OK(p.WhoAmI(req, &resp, &controller));
+#ifdef USE_IPV6
+  ASSERT_STR_CONTAINS(resp.address(), "::1:");
+#else
   ASSERT_STR_CONTAINS(resp.address(), "127.0.0.1:");
+#endif
 }
 
 ////////////////////////////////////////////////////////////

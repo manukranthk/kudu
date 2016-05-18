@@ -242,7 +242,6 @@ Status Webserver::GetBoundAddresses(std::vector<Sockaddr>* addrs) const {
     free(sockaddrs[i]);
   }
   free(sockaddrs);
-
   return Status::OK();
 }
 

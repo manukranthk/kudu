@@ -299,16 +299,26 @@ class PeriodicWebUIChecker {
     for (int i = 0; i < cluster.num_masters(); i++) {
       for (std::string page : master_pages) {
         urls_.push_back(strings::Substitute(
+#if defined(USE_IPV6)
+            "http://localhost:$0$1",
+            cluster.master(i)->bound_http_hostport().port(),
+#else
             "http://$0$1",
             cluster.master(i)->bound_http_hostport().ToString(),
+#endif
             page));
       }
     }
     for (int i = 0; i < cluster.num_tablet_servers(); i++) {
       for (std::string page : ts_pages) {
         urls_.push_back(strings::Substitute(
+#if defined(USE_IPV6)
+            "http://localhost:$0$1",
+            cluster.tablet_server(i)->bound_http_hostport().port(),
+#else
             "http://$0$1",
             cluster.tablet_server(i)->bound_http_hostport().ToString(),
+#endif
             page));
       }
     }

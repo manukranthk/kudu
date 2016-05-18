@@ -110,6 +110,7 @@ popd
 # Pick a unique localhost IP address so this can run in parallel with other
 # tests. This only works on Linux.
 LOCALHOST_IP=127.0.0.1
+
 if [ "$(uname)" == "Linux" ]; then
   LOCALHOST_IP=127.$[($$ >> 8) & 0xff].$[$$ & 0xff].1
   echo Using unique localhost IP $LOCALHOST_IP
@@ -128,17 +129,17 @@ $OUTPUT_DIR/kudu-master \
   --fs_data_dirs=$BASE_DIR/master \
   --webserver_interface=localhost \
   --webserver_port=0 \
-  --rpc_bind_addresses=$LOCALHOST_IP &
+  --rpc_bind_addresses=[::]:8054 &
 MASTER_PID=$!
 $OUTPUT_DIR/kudu-tserver \
   --log_dir=$BASE_DIR \
   --fs_wal_dir=$BASE_DIR/ts \
   --fs_data_dirs=$BASE_DIR/ts \
-  --rpc_bind_addresses=$LOCALHOST_IP \
-  --local_ip_for_outbound_sockets=$LOCALHOST_IP \
+  --rpc_bind_addresses=[::]:8055 \
+  --local_ip_for_outbound_sockets=[::]:0 \
   --webserver_interface=localhost \
   --webserver_port=0 \
-  --tserver_master_addrs=$LOCALHOST_IP &
+  --tserver_master_addrs=localhost:8054 &
 TS_PID=$!
 
 # Let them run for a bit.

@@ -68,7 +68,7 @@ class WebserverTest : public KuduTest {
 };
 
 TEST_F(WebserverTest, TestIndexPage) {
-  ASSERT_OK(curl_.FetchURL(strings::Substitute("http://$0/", addr_.ToString()),
+  ASSERT_OK(curl_.FetchURL(strings::Substitute("http://localhost:$0/", addr_.port()),
                            &buf_));
   // Should have expected title.
   ASSERT_STR_CONTAINS(buf_.ToString(), "Kudu");
@@ -79,7 +79,7 @@ TEST_F(WebserverTest, TestIndexPage) {
 
 TEST_F(WebserverTest, TestDefaultPaths) {
   // Test memz
-  ASSERT_OK(curl_.FetchURL(strings::Substitute("http://$0/memz?raw=1", addr_.ToString()),
+  ASSERT_OK(curl_.FetchURL(strings::Substitute("http://localhost:$0/memz?raw=1", addr_.port()),
                            &buf_));
 #ifdef TCMALLOC_ENABLED
   ASSERT_STR_CONTAINS(buf_.ToString(), "Bytes in use by application");
@@ -88,7 +88,7 @@ TEST_F(WebserverTest, TestDefaultPaths) {
 #endif
 
   // Test varz -- check for one of the built-in gflags flags.
-  ASSERT_OK(curl_.FetchURL(strings::Substitute("http://$0/varz?raw=1", addr_.ToString()),
+  ASSERT_OK(curl_.FetchURL(strings::Substitute("http://localhost:$0/varz?raw=1", addr_.port()),
                            &buf_));
   ASSERT_STR_CONTAINS(buf_.ToString(), "--v=");
 }
@@ -100,14 +100,14 @@ void SomeMethodForSymbolTest2() {}
 
 TEST_F(WebserverTest, TestPprofPaths) {
   // Test /pprof/cmdline GET
-  ASSERT_OK(curl_.FetchURL(strings::Substitute("http://$0/pprof/cmdline", addr_.ToString()),
+  ASSERT_OK(curl_.FetchURL(strings::Substitute("http://localhost:$0/pprof/cmdline", addr_.port()),
                            &buf_));
   ASSERT_STR_CONTAINS(buf_.ToString(), "webserver-test");
   ASSERT_TRUE(!HasSuffixString(buf_.ToString(), string("\x00", 1)))
     << "should not have trailing NULL: " << Slice(buf_).ToDebugString();
 
   // Test /pprof/symbol GET
-  ASSERT_OK(curl_.FetchURL(strings::Substitute("http://$0/pprof/symbol", addr_.ToString()),
+  ASSERT_OK(curl_.FetchURL(strings::Substitute("http://localhost:$0/pprof/symbol", addr_.port()),
                            &buf_));
   ASSERT_EQ(buf_.ToString(), "num_symbols: 1");
 
@@ -118,7 +118,7 @@ TEST_F(WebserverTest, TestPprofPaths) {
                               &SomeMethodForSymbolTest1,
                               &SomeMethodForSymbolTest2);
     SCOPED_TRACE(req);
-    ASSERT_OK(curl_.PostToURL(strings::Substitute("http://$0/pprof/symbol", addr_.ToString()),
+    ASSERT_OK(curl_.PostToURL(strings::Substitute("http://localhost:$0/pprof/symbol", addr_.port()),
                               req, &buf_));
     ASSERT_EQ(buf_.ToString(),
               StringPrintf("%p\tkudu::SomeMethodForSymbolTest1()\n"
@@ -133,7 +133,7 @@ TEST_F(WebserverTest, TestPprofPaths) {
 TEST_F(WebserverTest, TestPostTooBig) {
   FLAGS_webserver_max_post_length_bytes = 10;
   string req(10000, 'c');
-  Status s = curl_.PostToURL(strings::Substitute("http://$0/pprof/symbol", addr_.ToString()),
+  Status s = curl_.PostToURL(strings::Substitute("http://localhost:$0/pprof/symbol", addr_.port()),
                              req, &buf_);
   ASSERT_EQ("Remote error: HTTP 413", s.ToString());
 }
@@ -142,20 +142,20 @@ TEST_F(WebserverTest, TestPostTooBig) {
 // disabled.
 TEST_F(WebserverTest, TestStaticFiles) {
   // Fetch a non-existent static file.
-  Status s = curl_.FetchURL(strings::Substitute("http://$0/foo.txt", addr_.ToString()),
+  Status s = curl_.FetchURL(strings::Substitute("http://localhost:$0/foo.txt", addr_.port()),
                             &buf_);
   ASSERT_EQ("Remote error: HTTP 404", s.ToString());
 
   // Create the file and fetch again. This time it should succeed.
   ASSERT_OK(WriteStringToFile(env_.get(), "hello world",
                               strings::Substitute("$0/foo.txt", static_dir_)));
-  ASSERT_OK(curl_.FetchURL(strings::Substitute("http://$0/foo.txt", addr_.ToString()),
+  ASSERT_OK(curl_.FetchURL(strings::Substitute("http://localhost:$0/foo.txt", addr_.port()),
                            &buf_));
   ASSERT_EQ("hello world", buf_.ToString());
 
   // Create a directory and ensure that subdirectory listing is disabled.
   ASSERT_OK(env_->CreateDir(strings::Substitute("$0/dir", static_dir_)));
-  s = curl_.FetchURL(strings::Substitute("http://$0/dir/", addr_.ToString()),
+  s = curl_.FetchURL(strings::Substitute("http://localhost:$0/dir/", addr_.port()),
                      &buf_);
   ASSERT_EQ("Remote error: HTTP 403", s.ToString());
 }

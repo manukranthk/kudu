@@ -63,7 +63,7 @@ MiniTabletServer::MiniTabletServer(const string& fs_root,
 
   // Start RPC server on loopback.
   FLAGS_rpc_server_allow_ephemeral_ports = true;
-  opts_.rpc_opts.rpc_bind_addresses = Substitute("127.0.0.1:$0", rpc_port);
+  opts_.rpc_opts.rpc_bind_addresses = Substitute("[::1]:$0", rpc_port);
   opts_.webserver_opts.port = 0;
   opts_.fs_opts.wal_path = fs_root;
   opts_.fs_opts.data_paths = { fs_root };
@@ -94,7 +94,7 @@ void MiniTabletServer::Shutdown() {
     // server, it will come back on the same address. This is necessary since we don't
     // currently support tablet servers re-registering on different ports (KUDU-418).
     opts_.webserver_opts.port = bound_http_addr().port();
-    opts_.rpc_opts.rpc_bind_addresses = Substitute("127.0.0.1:$0", bound_rpc_addr().port());
+    opts_.rpc_opts.rpc_bind_addresses = Substitute("::1:$0", bound_rpc_addr().port());
     server_->Shutdown();
     server_.reset();
   }

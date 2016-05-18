@@ -37,7 +37,7 @@ static int MasterMain(int argc, char** argv) {
   InitKuduOrDie();
 
   // Reset some default values before parsing gflags.
-  FLAGS_rpc_bind_addresses = strings::Substitute("0.0.0.0:$0",
+  FLAGS_rpc_bind_addresses = strings::Substitute("[::]:$0",
                                                  Master::kDefaultPort);
   FLAGS_webserver_port = Master::kDefaultWebPort;
 
